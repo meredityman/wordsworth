@@ -20,6 +20,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
+import nltk
+
+nltk.download('averaged_perceptron_tagger')
+nltk.download('punkt')
+
+
 # Font effects --> fancy console colours in bash
 underline = "\x1b[1;4m"
 black = "\x1b[1;30m"
@@ -38,6 +44,7 @@ prev_punc = ''
 
 word_stats = {
               'words': {},
+              'adjectives': {},
               'word_pairs': {},
               'word_triplets': {},
               'word_quads': {},
@@ -78,10 +85,27 @@ if __name__ == '__main__':
     filename = args.inputFile
     f = open(filename, 'r')
     
-    print "[+] Analysing '" + args.inputFile + "'"
+    print("[+] Analysing '" + args.inputFile + "'")
     
     lines = f.readlines()
     for line in lines:
+
+        tokens = nltk.word_tokenize(line)
+        tokens = nltk.pos_tag(tokens)
+        for token in tokens:
+            
+            if( token[1].startswith("JJ")):
+                adj_word = token[0].lower()
+                if adj_word in word_stats['adjectives']:
+                        word_stats['adjectives'][adj_word]['count'] += 1.0
+                else:
+                    word_stats['adjectives'][adj_word] = {
+                        'length': len(adj_word),
+                        'count': 1
+                    }
+
+
+
         words = line.split()
         for word in words:
 
@@ -225,6 +249,12 @@ if __name__ == '__main__':
                        key=lambda x: (word_stats['words'][x]['count']),
                        reverse=True)
 
+    # Find the most common adjectives
+    top_adjectives = sorted(word_stats['adjectives'],
+                       key=lambda x: (word_stats['adjectives'][x]['count']),
+                       reverse=True)
+
+
     # Find most common word pairs
     top_pairs = sorted(word_stats['word_pairs'],
                        key=lambda x: (word_stats['word_pairs'][x]['count']),
@@ -245,10 +275,10 @@ if __name__ == '__main__':
     # Print results
     out = open(filename.split('.')[0] + '-stats.txt', 'w')
 
-    print '\n===' + blue + ' RESULTS ' + normal + '==='
+    print('\n===' + blue + ' RESULTS ' + normal + '===')
     out.write('=== RESULTS ===\n')
 
-    print 'File = ' + purple + str(filename) + normal
+    print('File = ' + purple + str(filename) + normal)
     out.write('File = ' + str(filename) + '\n')
 
     print ('Longest word = ' + purple + str(word_stats['longest_word']) + normal +
@@ -276,7 +306,7 @@ if __name__ == '__main__':
 
     ##############################################################################
 
-    print '\n===' + blue + ' Commonest words ' + normal + '==='
+    print('\n===' + blue + ' Commonest words ' + normal + '===')
     out.write('\n=== Commonest words ===\n')
 
     limit = 50
@@ -293,9 +323,29 @@ if __name__ == '__main__':
         out.write(str(i + 1) + ' = ' + word + ' (' + str(count).split('.')[0] +
                ' = ' + str(perc)[:5] + '%)\n')
 
+
     ##############################################################################
 
-    print '\n===' + blue + ' Commonest word-pairs ' + normal + '==='
+    print('\n===' + blue + ' Commonest Adjectives ' + normal + '===')
+    out.write('\n=== Commonest Adjectives ===\n')
+
+    limit = 50
+    if len(top_adjectives) < 50:
+        limit = len(top_adjectives)
+
+    for i in range(0, limit):
+        word = top_adjectives[i]
+        count = word_stats['adjectives'][word]['count']
+        perc = 100.0 * (count / word_stats['total_words'])
+        print (str(i + 1) + ' = ' + purple + word +
+               normal + ' (' + purple + str(count).split('.')[0] + normal +
+               ' = ' + purple + str(perc)[:5] + '%' + normal + ')')
+        out.write(str(i + 1) + ' = ' + word + ' (' + str(count).split('.')[0] +
+               ' = ' + str(perc)[:5] + '%)\n')
+
+    ##############################################################################
+
+    print('\n===' + blue + ' Commonest word-pairs ' + normal + '===')
     out.write('\n=== Commonest word-pairs ===\n')
 
     limit = 50
@@ -314,7 +364,7 @@ if __name__ == '__main__':
 
     ##############################################################################
 
-    print '\n===' + blue + ' Commonest word-triplets ' + normal + '==='
+    print('\n===' + blue + ' Commonest word-triplets ' + normal + '===')
     out.write('\n=== Commonest word-triplets ===\n')
 
     limit = 50
@@ -333,7 +383,7 @@ if __name__ == '__main__':
 
     ##############################################################################
 
-    print '\n===' + blue + ' Commonest word-quads ' + normal + '==='
+    print('\n===' + blue + ' Commonest word-quads ' + normal + '===')
     out.write('\n=== Commonest word-quads ===\n')
 
     limit = 50
@@ -354,9 +404,9 @@ if __name__ == '__main__':
 
     total_dev = 0.0
 
-    print '\n===' + blue + ' FREQUENCY ANALYSIS ' + normal + '==='
+    print('\n===' + blue + ' FREQUENCY ANALYSIS ' + normal + '===')
     out.write('\n=== FREQUENCY ANALYSIS ===\n')
-    for char in sorted(word_stats['char_percentages'].iterkeys()):
+    for char in sorted(word_stats['char_percentages'].keys()):
         bar = ''
         perc = word_stats['char_percentages'][char]
 
@@ -384,5 +434,5 @@ if __name__ == '__main__':
 
     ##############################################################################
 
-    print '\nWritten results to ' + filename.split('.')[0] + '-stats.txt\n'
+    print('\nWritten results to ' + filename.split('.')[0] + '-stats.txt\n')
     out.close()
